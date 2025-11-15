@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/the-code-genin/golang_integration_testing/migrations"
@@ -19,11 +19,11 @@ const (
 
 type CleanupFunc func() error
 
-// Spins up a PostgreSQL container, applies the up migrations,
-// and returns a pgx connection and a cleanup function which will run the downMigrations and terminate the container.
+// Spins up a PostgreSQL container, applies the up migrations, and returns a pgx Pool.
+// It also returns a cleanup function which will run the downMigrations and terminate the container.
 func SetupPostgresDB(
 	ctx context.Context,
-) (container *testcontainers.DockerContainer, conn *pgx.Conn, cleanupFunc CleanupFunc, err error) {
+) (container *testcontainers.DockerContainer, connPool *pgxpool.Pool, cleanupFunc CleanupFunc, err error) {
 	upMigrations, downMigrations, err := migrations.SquashMigrations()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to squash db migrations: %w", err)
@@ -70,7 +70,7 @@ func SetupPostgresDB(
 		"postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		postgresUser, postgresPassword, host, port.Port(), postgresDB,
 	)
-	conn, err = pgx.Connect(ctx, connStr)
+	connPool, err = pgxpool.New(ctx, connStr)
 	if err != nil {
 		container.Terminate(ctx)
 		return nil, nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)
@@ -78,15 +78,12 @@ func SetupPostgresDB(
 
 	// Cleanup function to run down migrations, close connection and terminate container
 	cleanupFunc = func() error {
-		_, execErr := conn.Exec(ctx, downMigrations.String())
+		_, execErr := connPool.Exec(ctx, downMigrations.String())
 		if execErr != nil {
 			return fmt.Errorf("warning: failed to apply down migrations: %w", execErr)
 		}
 
-		if err := conn.Close(ctx); err != nil {
-			return err
-		}
-
+		connPool.Close()
 		if err := container.Terminate(ctx); err != nil {
 			return err
 		}
@@ -94,5 +91,5 @@ func SetupPostgresDB(
 		return nil
 	}
 
-	return container, conn, cleanupFunc, nil
+	return container, connPool, cleanupFunc, nil
 }
