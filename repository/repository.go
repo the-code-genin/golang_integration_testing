@@ -4,13 +4,15 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type repository struct {
+	conn *pgx.Conn
 }
 
-func NewRepository() Repository {
-	return &repository{}
+func NewRepository(conn *pgx.Conn) Repository {
+	return &repository{conn}
 }
 
 func (r *repository) CreateNote(ctx context.Context, dto CreateNoteDTO) (*Note, error) {
