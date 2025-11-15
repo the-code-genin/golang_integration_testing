@@ -1,0 +1,3 @@
+DROP SCHEMA IF EXISTS "core";
+
+DROP EXTENSION IF EXISTS "uuid-ossp";
