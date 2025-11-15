@@ -223,10 +223,11 @@ func TestRepository(t *testing.T) {
 
 			// Insert 3 random notes
 			for range 3 {
-				repo.CreateNote(ctx, repository.CreateNoteDTO{
+				_, err = repo.CreateNote(ctx, repository.CreateNoteDTO{
 					Title:       gofakeit.Sentence(3),
 					Description: gofakeit.Sentence(10),
 				})
+				assert.NoError(t, err)
 			}
 
 			notes, err := repo.FetchNotes(ctx)
