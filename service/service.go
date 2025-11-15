@@ -30,19 +30,39 @@ func (s *service) CreateNote(
 func (s *service) UpdateNote(
 	ctx context.Context, id uuid.UUID, dto repository.UpdateNoteDTO,
 ) (*repository.Note, error) {
-	return &repository.Note{}, nil
+	note, err := s.repo.UpdateNote(ctx, id, dto)
+	if err != nil {
+		log.Printf("an error occurred while updating note with id %s: %v", id.String(), err)
+		return nil, ErrInternal
+	}
+	return note, nil
 }
 
 func (s *service) DeleteNote(ctx context.Context, id uuid.UUID) error {
+	err := s.repo.DeleteNote(ctx, id)
+	if err != nil {
+		log.Printf("an error occurred while deleting note with id %s: %v", id.String(), err)
+		return ErrInternal
+	}
 	return nil
 }
 
 func (s *service) FetchNotes(ctx context.Context) ([]repository.Note, error) {
-	return []repository.Note{}, nil
+	notes, err := s.repo.FetchNotes(ctx)
+	if err != nil {
+		log.Printf("an error occurred while fetching notes: %v", err)
+		return nil, ErrInternal
+	}
+	return notes, nil
 }
 
 func (s *service) FetchNoteByID(
 	ctx context.Context, id uuid.UUID,
 ) (*repository.Note, error) {
-	return &repository.Note{}, nil
+	note, err := s.repo.FetchNoteByID(ctx, id)
+	if err != nil {
+		log.Printf("an error occurred while fetching note with id %s: %v", id.String(), err)
+		return nil, ErrInternal
+	}
+	return note, nil
 }
