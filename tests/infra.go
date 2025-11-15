@@ -1,13 +1,13 @@
 package tests
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/the-code-genin/golang_integration_testing/migrations"
 )
 
 const (
@@ -22,8 +22,13 @@ type CleanupFunc func() error
 // Spins up a PostgreSQL container, applies the up migrations,
 // and returns a pgx connection and a cleanup function which will run the downMigrations and terminate the container.
 func SetupPostgresDB(
-	ctx context.Context, upMigrations, downMigrations *bytes.Buffer,
+	ctx context.Context,
 ) (container *testcontainers.DockerContainer, conn *pgx.Conn, cleanupFunc CleanupFunc, err error) {
+	upMigrations, downMigrations, err := migrations.SquashMigrations()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("unable to squash db migrations: %w", err)
+	}
+
 	// Spin up a postgres database
 	container, err = testcontainers.Run(
 		ctx, postgresImage,
