@@ -18,9 +18,11 @@ type Repository interface {
 }
 
 type CreateNoteDTO struct {
-	Title, Description string
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 type UpdateNoteDTO struct {
-	Title, Description *string
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
 }
