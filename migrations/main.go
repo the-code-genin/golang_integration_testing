@@ -67,16 +67,16 @@ func squashMigrations(fsys embed.FS, asc bool) (*bytes.Buffer, error) {
 }
 
 // Squash the up and down migrations in the migrations folder into Buffers.
-func SquashMigrations() (upBuf, downBuf *bytes.Buffer, err error) {
-	upBuf, err = squashMigrations(upMigrationsFS, true)
+func SquashMigrations() (upMigrations, downMigrations *bytes.Buffer, err error) {
+	upMigrations, err = squashMigrations(upMigrationsFS, true)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to squash up migrations: %w", err)
 	}
 
-	downBuf, err = squashMigrations(downMigrationsFS, false)
+	downMigrations, err = squashMigrations(downMigrationsFS, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to squash down migrations: %w", err)
 	}
 
-	return upBuf, downBuf, nil
+	return upMigrations, downMigrations, nil
 }
