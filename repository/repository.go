@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,14 +49,27 @@ func (r *repository) CreateNote(ctx context.Context, dto CreateNoteDTO) (*Note, 
 func (r *repository) UpdateNote(ctx context.Context, id uuid.UUID, dto UpdateNoteDTO) (*Note, error) {
 	updatedAt := time.Now()
 
+	updateArgs := []any{id.String(), updatedAt}
+	updateSts := []string{
+		"updated_at = $2",
+	}
+
+	if dto.Title != nil {
+		updateArgs = append(updateArgs, *dto.Title)
+		updateSts = append(updateSts, fmt.Sprintf("title = $%d", len(updateArgs)))
+	}
+
+	if dto.Description != nil {
+		updateArgs = append(updateArgs, *dto.Description)
+		updateSts = append(updateSts, fmt.Sprintf("description = $%d", len(updateArgs)))
+	}
+
+	updateStatement := strings.Join(updateSts, ",")
+
 	_, err := r.conn.Exec(
 		ctx,
-		`UPDATE core.notes
-		 SET title = COALESCE($2, title),
-		     description = COALESCE($3, description),
-		     updated_at = $4
-		 WHERE id = $1`,
-		id, dto.Title, dto.Description, updatedAt,
+		fmt.Sprintf(`UPDATE core.notes SET %s WHERE id = $1`, updateStatement),
+		updateArgs...,
 	)
 	if err != nil {
 		return nil, err
