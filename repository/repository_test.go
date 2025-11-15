@@ -171,7 +171,7 @@ func TestRepository(t *testing.T) {
 			})
 			assert.NoError(t, err)
 
-			// Attempt to rename B to A’s title
+			// Attempt to rename B to A's title
 			_, err = repo.UpdateNote(ctx, noteB.ID, repository.UpdateNoteDTO{
 				Title: &noteA.Title,
 			})
