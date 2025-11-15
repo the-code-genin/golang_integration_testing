@@ -1,3 +1,7 @@
+.PHONY: migrate-create
+migrate-create:
+	@migrate create -ext sql -dir migrations -seq $(name)
+
 .PHONY: migrate-up
 migrate-up:
 	@migrate -path ./migrations -database "postgres://postgres:password@localhost:5432/postgres?sslmode=disable" up
