@@ -75,6 +75,7 @@ func TestRepository(t *testing.T) {
 				Description: gofakeit.Sentence(10),
 			})
 			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "duplicate key error")
 
 			// Confirm only one exists in DB
 			var count int
@@ -176,6 +177,7 @@ func TestRepository(t *testing.T) {
 				Title: &noteA.Title,
 			})
 			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "duplicate key error")
 		})
 	})
 

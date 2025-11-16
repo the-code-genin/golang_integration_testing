@@ -3,12 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,6 +35,14 @@ func (r *repository) CreateNote(ctx context.Context, dto CreateNoteDTO) (*Note, 
 		id.String(), dto.Title, dto.Description, createdAt,
 	)
 	if err != nil {
+		// Return a custom error if a unique constraint was violated
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return nil, fmt.Errorf("duplicate key error: %s", pgErr.ConstraintName)
+			}
+		}
+
 		return nil, err
 	}
 
@@ -70,6 +80,14 @@ func (r *repository) UpdateNote(ctx context.Context, id uuid.UUID, dto UpdateNot
 		args...,
 	)
 	if err != nil {
+		// Return a custom error if a unique constraint was violated
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return nil, fmt.Errorf("duplicate key error: %s", pgErr.ConstraintName)
+			}
+		}
+
 		return nil, err
 	}
 
