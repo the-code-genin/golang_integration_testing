@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"log"
 
 	"github.com/google/uuid"
@@ -62,7 +64,13 @@ func (s *service) FetchNoteByID(
 	note, err := s.repo.FetchNoteByID(ctx, id)
 	if err != nil {
 		log.Printf("an error occurred while fetching note with id %s: %v", id.String(), err)
-		return nil, ErrInternal
+
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNoteNotFound
+		default:
+			return nil, ErrInternal
+		}
 	}
 	return note, nil
 }

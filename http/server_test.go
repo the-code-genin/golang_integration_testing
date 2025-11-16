@@ -2,6 +2,7 @@ package http_test
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -44,7 +45,7 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("Endpoint to create notes", func(t *testing.T) {
-		t.Run("should create a note given a title and description", func(t *testing.T) {
+		t.Run("should return a created status code given a valid title and description", func(t *testing.T) {
 			t.Parallel()
 
 			title := gofakeit.Sentence(3)
@@ -77,7 +78,7 @@ func TestServer(t *testing.T) {
 			resp.Value("created_at").String().AsDateTime().IsEqual(note.CreatedAt)
 		})
 
-		t.Run("should fail if title or description is empty", func(t *testing.T) {
+		t.Run("should return a bad request if the input parameters are invalid", func(t *testing.T) {
 			t.Parallel()
 
 			testcases := []struct {
@@ -110,12 +111,14 @@ func TestServer(t *testing.T) {
 						Expect().
 						Status(http.StatusBadRequest).
 						JSON().Object().
-						ContainsKey("message")
+						ContainsSubset(map[string]any{
+							"message": "bad request",
+						})
 				})
 			}
 		})
 
-		t.Run("should fail if an existing note's title is specified", func(t *testing.T) {
+		t.Run("should return an internal error if an existing note's title is specified", func(t *testing.T) {
 			t.Parallel()
 
 			title := gofakeit.Sentence(3)
@@ -138,6 +141,141 @@ func TestServer(t *testing.T) {
 				ContainsSubset(map[string]any{
 					"message": service.ErrInternal.Error(),
 				})
+		})
+	})
+
+	t.Run("FetchNoteByID", func(t *testing.T) {
+		t.Run("should return an ok status code when given a valid ID", func(t *testing.T) {
+			t.Parallel()
+
+			// First, create a note in the DB
+			note, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			})
+			assert.NoError(t, err)
+
+			// Fetch the note via HTTP
+			resp := httpClient.GET("/v1/notes/{id}", note.ID.String()).
+				Expect().
+				Status(http.StatusOK).
+				JSON().Object().
+				ContainsSubset(map[string]any{
+					"id":          note.ID.String(),
+					"title":       note.Title,
+					"description": note.Description,
+				})
+
+			resp.Value("created_at").String().AsDateTime().IsEqual(note.CreatedAt)
+			resp.Value("updated_at").String().AsDateTime().IsEqual(*note.UpdatedAt)
+		})
+
+		t.Run("should return a not found error if a non-existent ID is provided", func(t *testing.T) {
+			t.Parallel()
+
+			// Generate a random UUID that doesn't exist
+			nonExistentID := uuid.New()
+
+			// Attempt to fetch
+			httpClient.GET("/v1/notes/{id}", nonExistentID.String()).
+				Expect().
+				Status(http.StatusNotFound).
+				JSON().Object().
+				ContainsSubset(map[string]any{
+					"message": service.ErrNoteNotFound.Error(),
+				})
+		})
+	})
+
+	t.Run("UpdateNote", func(t *testing.T) {
+		t.Run("should return a 200 ok response given a valid ID and update payload", func(t *testing.T) {
+			t.Parallel()
+
+			// Create a note first
+			note, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			})
+			assert.NoError(t, err)
+
+			newTitle := gofakeit.Sentence(3)
+			newDescription := gofakeit.Sentence(10)
+
+			resp := httpClient.PATCH("/v1/notes/{id}", note.ID.String()).
+				WithHeader("Content-Type", "application/json").
+				WithJSON(map[string]string{
+					"title":       newTitle,
+					"description": newDescription,
+				}).Expect().
+				Status(http.StatusOK).
+				JSON().Object().
+				ContainsSubset(map[string]any{
+					"id":          note.ID.String(),
+					"title":       newTitle,
+					"description": newDescription,
+				})
+
+			updatedNote, err := repo.FetchNoteByID(ctx, note.ID)
+			assert.NoError(t, err)
+			assert.Equal(t, newTitle, updatedNote.Title)
+			assert.Equal(t, newDescription, updatedNote.Description)
+
+			resp.Value("updated_at").String().AsDateTime().IsEqual(*updatedNote.UpdatedAt)
+		})
+	})
+
+	t.Run("DeleteNote", func(t *testing.T) {
+		t.Run("should delete a note given a valid ID", func(t *testing.T) {
+			t.Parallel()
+
+			note, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			})
+			assert.NoError(t, err)
+
+			httpClient.DELETE("/v1/notes/{id}", note.ID.String()).
+				Expect().
+				Status(http.StatusNoContent)
+
+			_, err = repo.FetchNoteByID(ctx, note.ID)
+			assert.Error(t, err)
+			assert.Equal(t, sql.ErrNoRows, err)
+		})
+	})
+
+	t.Run("FetchNotes", func(t *testing.T) {
+		t.Run("should fetch all notes", func(t *testing.T) {
+			t.Parallel()
+
+			// Create multiple notes
+			note1, _ := repo.CreateNote(ctx, repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			})
+			note2, _ := repo.CreateNote(ctx, repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			})
+
+			resp := httpClient.GET("/v1/notes").
+				Expect().
+				Status(http.StatusOK).
+				JSON().Array()
+
+			resp.Find(func(_ int, value *httpexpect.Value) bool {
+				return value.Object().Value("id").String().Raw() == note1.ID.String()
+			}).Object().ContainsSubset(map[string]any{
+				"title":       note1.Title,
+				"description": note1.Description,
+			})
+
+			resp.Find(func(_ int, value *httpexpect.Value) bool {
+				return value.Object().Value("id").String().Raw() == note2.ID.String()
+			}).Object().ContainsSubset(map[string]any{
+				"title":       note2.Title,
+				"description": note2.Description,
+			})
 		})
 	})
 }

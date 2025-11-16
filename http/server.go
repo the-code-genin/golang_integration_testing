@@ -38,6 +38,10 @@ func (s *Server) sendOk(c *gin.Context, data any) {
 	c.JSON(http.StatusOK, data)
 }
 
+func (s *Server) sendNoContent(c *gin.Context) {
+	c.Status(http.StatusNoContent)
+}
+
 func NewServer(svc service.Service) *Server {
 	router := gin.Default()
 
@@ -46,7 +50,14 @@ func NewServer(svc service.Service) *Server {
 		router:  router,
 	}
 
-	router.POST("/v1/notes", server.createNoteHandler)
+	g := router.Group("/v1/notes")
+	{
+		g.POST("", server.createNoteHandler)
+		g.GET("", server.fetchNotesHandler)
+		g.GET("/:id", server.fetchNoteByIDHandler)
+		g.PATCH("/:id", server.updateNoteHandler)
+		g.DELETE("/:id", server.deleteNoteHandler)
+	}
 
 	router.NoRoute(func(c *gin.Context) {
 		server.sendNotFound(c, "The route you requested for was not found on this server")

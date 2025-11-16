@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -86,7 +87,22 @@ func TestService(t *testing.T) {
 			assert.Equal(t, expectedNote, note)
 		})
 
-		t.Run("should return ErrInternal if repository returns error", func(t *testing.T) {
+		t.Run("should return ErrNoteNotFound if repository returns sql.ErrNoRows", func(t *testing.T) {
+			t.Parallel()
+
+			id := uuid.New()
+
+			mockRepo.EXPECT().
+				FetchNoteByID(gomock.Any(), id).
+				Return(nil, sql.ErrNoRows)
+
+			note, err := service.FetchNoteByID(ctx, id)
+			assert.Error(t, err)
+			assert.Equal(t, ErrNoteNotFound, err)
+			assert.Nil(t, note)
+		})
+
+		t.Run("should return ErrInternal if repository returns an error other than sql.ErrNoRows", func(t *testing.T) {
 			t.Parallel()
 
 			id := uuid.New()
