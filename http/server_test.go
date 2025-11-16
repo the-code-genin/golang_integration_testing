@@ -33,7 +33,7 @@ func TestServer(t *testing.T) {
 	repo := repository.NewRepository(conn)
 	svc := service.NewService(repo)
 
-	// Setup the server
+	// Setup and start the server
 	server := httptest.NewServer(h.NewServer(svc).Handler())
 	defer server.Close()
 
@@ -45,62 +45,40 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("Endpoint to create notes", func(t *testing.T) {
-		t.Run("should return a created status code given a valid title and description", func(t *testing.T) {
+		t.Run("should return a 201 status code given a valid title and description", func(t *testing.T) {
 			t.Parallel()
 
-			title := gofakeit.Sentence(3)
-			description := gofakeit.Sentence(10)
+			title, description := gofakeit.Sentence(3), gofakeit.Sentence(10)
 
 			resp := httpClient.POST("/v1/notes").
 				WithHeader("Content-Type", "application/json").
-				WithJSON(map[string]string{
-					"title":       title,
-					"description": description,
-				}).Expect().
+				WithJSON(map[string]string{"title": title, "description": description}).
+				Expect().
 				Status(http.StatusCreated).
 				JSON().Object().
-				ContainsSubset(map[string]any{
-					"title":       title,
-					"description": description,
-				}).ContainsKey("id").
+				ContainsSubset(map[string]any{"title": title, "description": description}).
+				ContainsKey("id").
 				ContainsKey("created_at").
 				ContainsKey("updated_at")
 
-			noteID, err := uuid.Parse(resp.Value("id").String().Raw())
-			assert.NoError(t, err)
+			noteID, _ := uuid.Parse(resp.Value("id").String().Raw())
+			note, _ := repo.FetchNoteByID(ctx, noteID)
 
-			// Confirm that the note is created in the DB
-			note, err := repo.FetchNoteByID(ctx, noteID)
-			assert.NoError(t, err)
 			assert.Equal(t, title, note.Title)
 			assert.Equal(t, description, note.Description)
-
 			resp.Value("created_at").String().AsDateTime().IsEqual(note.CreatedAt)
 		})
 
-		t.Run("should return a bad request if the input parameters are invalid", func(t *testing.T) {
+		t.Run("should return a 400 status code if the input parameters are invalid", func(t *testing.T) {
 			t.Parallel()
 
 			testcases := []struct {
 				name    string
 				payload map[string]string
 			}{
-				{
-					name: "missing title",
-					payload: map[string]string{
-						"description": gofakeit.Sentence(10),
-					},
-				},
-				{
-					name: "missing description",
-					payload: map[string]string{
-						"title": gofakeit.Sentence(3),
-					},
-				},
-				{
-					name:    "both missing",
-					payload: map[string]string{},
-				},
+				{"missing title", map[string]string{"description": gofakeit.Sentence(10)}},
+				{"missing description", map[string]string{"title": gofakeit.Sentence(3)}},
+				{"both missing", map[string]string{}},
 			}
 
 			for _, tc := range testcases {
@@ -111,36 +89,24 @@ func TestServer(t *testing.T) {
 						Expect().
 						Status(http.StatusBadRequest).
 						JSON().Object().
-						ContainsSubset(map[string]any{
-							"message": "bad request",
-						})
+						ContainsSubset(map[string]any{"message": "bad request"})
 				})
 			}
 		})
 
-		t.Run("should return an internal error if an existing note's title is specified", func(t *testing.T) {
+		t.Run("should return a 409 status code if an existing note's title is specified", func(t *testing.T) {
 			t.Parallel()
 
 			title := gofakeit.Sentence(3)
+			_, _ = repo.CreateNote(ctx, repository.CreateNoteDTO{Title: title, Description: gofakeit.Sentence(10)})
 
-			_, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
-				Title:       title,
-				Description: gofakeit.Sentence(10),
-			})
-			assert.NoError(t, err)
-
-			// Attempt to create duplicate
 			httpClient.POST("/v1/notes").
 				WithHeader("Content-Type", "application/json").
-				WithJSON(map[string]string{
-					"title":       title,
-					"description": gofakeit.Sentence(10),
-				}).Expect().
-				Status(http.StatusInternalServerError).
+				WithJSON(map[string]string{"title": title, "description": gofakeit.Sentence(10)}).
+				Expect().
+				Status(http.StatusConflict).
 				JSON().Object().
-				ContainsSubset(map[string]any{
-					"message": service.ErrInternal.Error(),
-				})
+				ContainsSubset(map[string]any{"message": service.ErrNoteTitleTaken.Error()})
 		})
 	})
 

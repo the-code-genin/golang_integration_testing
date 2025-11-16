@@ -22,7 +22,13 @@ func (s *Server) createNoteHandler(c *gin.Context) {
 	note, err := s.service.CreateNote(c, req)
 	if err != nil {
 		log.Printf("unable to create note: %v", err)
-		s.sendInternalError(c, err.Error())
+
+		switch {
+		case errors.Is(err, service.ErrNoteTitleTaken):
+			s.sendConflict(c, err.Error())
+		default:
+			s.sendInternalError(c, err.Error())
+		}
 		return
 	}
 
