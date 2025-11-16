@@ -111,7 +111,7 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("FetchNoteByID", func(t *testing.T) {
-		t.Run("should return an ok status code when given a valid ID", func(t *testing.T) {
+		t.Run("should return a 200 status code when given a valid ID", func(t *testing.T) {
 			t.Parallel()
 
 			// First, create a note in the DB
@@ -136,7 +136,7 @@ func TestServer(t *testing.T) {
 			resp.Value("updated_at").String().AsDateTime().IsEqual(*note.UpdatedAt)
 		})
 
-		t.Run("should return a not found error if a non-existent ID is provided", func(t *testing.T) {
+		t.Run("should return a 404 status code if a non-existent ID is provided", func(t *testing.T) {
 			t.Parallel()
 
 			// Generate a random UUID that doesn't exist
@@ -154,7 +154,7 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("UpdateNote", func(t *testing.T) {
-		t.Run("should return a 200 ok response given a valid ID and update payload", func(t *testing.T) {
+		t.Run("should return a 200 status code given a valid ID and update payload", func(t *testing.T) {
 			t.Parallel()
 
 			// Create a note first
@@ -188,10 +188,39 @@ func TestServer(t *testing.T) {
 
 			resp.Value("updated_at").String().AsDateTime().IsEqual(*updatedNote.UpdatedAt)
 		})
+
+		t.Run("should return a 409 status code if an existing note's title is specified", func(t *testing.T) {
+			t.Parallel()
+
+			// Create note A
+			noteA, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			})
+			assert.NoError(t, err)
+
+			// Create note B
+			noteB, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			})
+			assert.NoError(t, err)
+
+			httpClient.PATCH("/v1/notes/{id}", noteA.ID.String()).
+				WithHeader("Content-Type", "application/json").
+				WithJSON(map[string]string{
+					"title": noteB.Title,
+				}).Expect().
+				Status(http.StatusConflict).
+				JSON().Object().
+				ContainsSubset(map[string]any{
+					"message": service.ErrNoteTitleTaken.Error(),
+				})
+		})
 	})
 
 	t.Run("DeleteNote", func(t *testing.T) {
-		t.Run("should delete a note given a valid ID", func(t *testing.T) {
+		t.Run("should return a 204 status code note given a valid ID", func(t *testing.T) {
 			t.Parallel()
 
 			note, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
@@ -211,7 +240,7 @@ func TestServer(t *testing.T) {
 	})
 
 	t.Run("FetchNotes", func(t *testing.T) {
-		t.Run("should fetch all notes", func(t *testing.T) {
+		t.Run("should return a 200 status code on success", func(t *testing.T) {
 			t.Parallel()
 
 			// Create multiple notes

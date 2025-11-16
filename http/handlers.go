@@ -89,8 +89,8 @@ func (s *Server) updateNoteHandler(c *gin.Context) {
 		log.Printf("unable to update note: %v", err)
 
 		switch {
-		case errors.Is(err, service.ErrNoteNotFound):
-			s.sendNotFound(c, err.Error())
+		case errors.Is(err, service.ErrNoteTitleTaken):
+			s.sendConflict(c, err.Error())
 		default:
 			s.sendInternalError(c, err.Error())
 		}
