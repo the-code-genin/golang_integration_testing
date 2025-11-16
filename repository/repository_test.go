@@ -44,7 +44,7 @@ func TestRepository(t *testing.T) {
 			assert.False(t, note.CreatedAt.IsZero())
 			assert.NotNil(t, note.UpdatedAt)
 
-			// Verify directly in DB
+			// Verify in the DB
 			var (
 				dbTitle, dbDescription   string
 				dbCreatedAt, dbUpdatedAt time.Time
