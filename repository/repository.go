@@ -96,7 +96,7 @@ func (r *repository) FetchNotes(ctx context.Context) ([]Note, error) {
 	}
 	defer rows.Close()
 
-	var notes []Note
+	notes := []Note{}
 
 	for rows.Next() {
 		var note Note
