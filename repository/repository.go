@@ -37,10 +37,8 @@ func (r *repository) CreateNote(ctx context.Context, dto CreateNoteDTO) (*Note, 
 	if err != nil {
 		// Return a custom error if a unique constraint was violated
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == "23505" {
-				return nil, fmt.Errorf("duplicate key error: %s", pgErr.ConstraintName)
-			}
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, fmt.Errorf("duplicate key error: %s", pgErr.ConstraintName)
 		}
 
 		return nil, err
@@ -82,10 +80,8 @@ func (r *repository) UpdateNote(ctx context.Context, id uuid.UUID, dto UpdateNot
 	if err != nil {
 		// Return a custom error if a unique constraint was violated
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == "23505" {
-				return nil, fmt.Errorf("duplicate key error: %s", pgErr.ConstraintName)
-			}
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, fmt.Errorf("duplicate key error: %s", pgErr.ConstraintName)
 		}
 
 		return nil, err
