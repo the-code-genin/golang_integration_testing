@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/the-code-genin/golang_integration_testing/repository"
@@ -24,6 +25,11 @@ func (s *service) CreateNote(
 	note, err := s.repo.CreateNote(ctx, dto)
 	if err != nil {
 		log.Printf("an error occurred while creating a note: %v", err)
+
+		if strings.Contains(err.Error(), "duplicate key error") {
+			return nil, ErrNoteTitleTaken
+		}
+
 		return nil, ErrInternal
 	}
 	return note, nil
@@ -35,6 +41,11 @@ func (s *service) UpdateNote(
 	note, err := s.repo.UpdateNote(ctx, id, dto)
 	if err != nil {
 		log.Printf("an error occurred while updating note with id %s: %v", id.String(), err)
+
+		if strings.Contains(err.Error(), "duplicate key error") {
+			return nil, ErrNoteTitleTaken
+		}
+
 		return nil, ErrInternal
 	}
 	return note, nil

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -46,7 +47,7 @@ func TestService(t *testing.T) {
 			assert.Equal(t, expectedNote, note)
 		})
 
-		t.Run("should return ErrInternal if an error occurred while creating the note", func(t *testing.T) {
+		t.Run("should return ErrNoteTitleTaken if a duplicate key error was returned from the DBAL", func(t *testing.T) {
 			t.Parallel()
 
 			dto := repository.CreateNoteDTO{
@@ -55,6 +56,25 @@ func TestService(t *testing.T) {
 			}
 
 			// Simulate repository returning an error for duplicate title
+			mockRepo.EXPECT().
+				CreateNote(gomock.Any(), dto).
+				Return(nil, errors.New("duplicate key error")).
+				Times(1)
+
+			note, err := service.CreateNote(ctx, dto)
+			assert.Error(t, err)
+			assert.Equal(t, ErrNoteTitleTaken, err)
+			assert.Nil(t, note)
+		})
+
+		t.Run("should return ErrInternal if an unknown error occurred while creating the note", func(t *testing.T) {
+			t.Parallel()
+
+			dto := repository.CreateNoteDTO{
+				Title:       gofakeit.Sentence(3),
+				Description: gofakeit.Sentence(10),
+			}
+
 			mockRepo.EXPECT().
 				CreateNote(gomock.Any(), dto).
 				Return(nil, assert.AnError).
@@ -68,19 +88,16 @@ func TestService(t *testing.T) {
 	})
 
 	t.Run("FetchNoteByID", func(t *testing.T) {
-		t.Run("should fetch a note given a valid ID", func(t *testing.T) {
-			t.Parallel()
+		id := uuid.New()
 
-			id := uuid.New()
+		t.Run("should fetch a note given a valid ID", func(t *testing.T) {
 			expectedNote := &repository.Note{
 				ID:          id,
 				Title:       gofakeit.Sentence(3),
 				Description: gofakeit.Sentence(10),
 			}
 
-			mockRepo.EXPECT().
-				FetchNoteByID(gomock.Any(), id).
-				Return(expectedNote, nil)
+			mockRepo.EXPECT().FetchNoteByID(gomock.Any(), id).Return(expectedNote, nil)
 
 			note, err := service.FetchNoteByID(ctx, id)
 			assert.NoError(t, err)
@@ -88,13 +105,7 @@ func TestService(t *testing.T) {
 		})
 
 		t.Run("should return ErrNoteNotFound if repository returns sql.ErrNoRows", func(t *testing.T) {
-			t.Parallel()
-
-			id := uuid.New()
-
-			mockRepo.EXPECT().
-				FetchNoteByID(gomock.Any(), id).
-				Return(nil, sql.ErrNoRows)
+			mockRepo.EXPECT().FetchNoteByID(gomock.Any(), id).Return(nil, sql.ErrNoRows)
 
 			note, err := service.FetchNoteByID(ctx, id)
 			assert.Error(t, err)
@@ -102,14 +113,8 @@ func TestService(t *testing.T) {
 			assert.Nil(t, note)
 		})
 
-		t.Run("should return ErrInternal if repository returns an error other than sql.ErrNoRows", func(t *testing.T) {
-			t.Parallel()
-
-			id := uuid.New()
-
-			mockRepo.EXPECT().
-				FetchNoteByID(gomock.Any(), id).
-				Return(nil, assert.AnError)
+		t.Run("should return ErrInternal for unknown errors", func(t *testing.T) {
+			mockRepo.EXPECT().FetchNoteByID(gomock.Any(), id).Return(nil, assert.AnError)
 
 			note, err := service.FetchNoteByID(ctx, id)
 			assert.Error(t, err)
@@ -119,48 +124,31 @@ func TestService(t *testing.T) {
 	})
 
 	t.Run("UpdateNote", func(t *testing.T) {
-		t.Run("should update a note given ID and DTO", func(t *testing.T) {
-			t.Parallel()
+		id := uuid.New()
+		title := gofakeit.Sentence(3)
+		desc := gofakeit.Sentence(10)
+		dto := repository.UpdateNoteDTO{Title: &title, Description: &desc}
+		expectedNote := &repository.Note{ID: id, Title: title, Description: desc}
 
-			id := uuid.New()
-			newTitle := gofakeit.Sentence(3)
-			newDescription := gofakeit.Sentence(10)
-
-			dto := repository.UpdateNoteDTO{
-				Title:       &newTitle,
-				Description: &newDescription,
-			}
-
-			expectedNote := &repository.Note{
-				ID:          id,
-				Title:       newTitle,
-				Description: newDescription,
-			}
-
-			mockRepo.EXPECT().
-				UpdateNote(gomock.Any(), id, dto).
-				Return(expectedNote, nil)
+		t.Run("should update a note successfully", func(t *testing.T) {
+			mockRepo.EXPECT().UpdateNote(gomock.Any(), id, dto).Return(expectedNote, nil)
 
 			note, err := service.UpdateNote(ctx, id, dto)
 			assert.NoError(t, err)
 			assert.Equal(t, expectedNote, note)
 		})
 
-		t.Run("should return ErrInternal if repository returns error", func(t *testing.T) {
-			t.Parallel()
+		t.Run("should return ErrNoteTitleTaken for duplicate key", func(t *testing.T) {
+			mockRepo.EXPECT().UpdateNote(gomock.Any(), id, dto).Return(nil, errors.New("duplicate key error"))
 
-			id := uuid.New()
-			newTitle := gofakeit.Sentence(3)
-			newDescription := gofakeit.Sentence(10)
+			note, err := service.UpdateNote(ctx, id, dto)
+			assert.Error(t, err)
+			assert.Equal(t, ErrNoteTitleTaken, err)
+			assert.Nil(t, note)
+		})
 
-			dto := repository.UpdateNoteDTO{
-				Title:       &newTitle,
-				Description: &newDescription,
-			}
-
-			mockRepo.EXPECT().
-				UpdateNote(gomock.Any(), id, dto).
-				Return(nil, assert.AnError)
+		t.Run("should return ErrInternal for unknown errors", func(t *testing.T) {
+			mockRepo.EXPECT().UpdateNote(gomock.Any(), id, dto).Return(nil, assert.AnError)
 
 			note, err := service.UpdateNote(ctx, id, dto)
 			assert.Error(t, err)
@@ -170,27 +158,17 @@ func TestService(t *testing.T) {
 	})
 
 	t.Run("DeleteNote", func(t *testing.T) {
-		t.Run("should delete a note given ID", func(t *testing.T) {
-			t.Parallel()
+		id := uuid.New()
 
-			id := uuid.New()
-
-			mockRepo.EXPECT().
-				DeleteNote(gomock.Any(), id).
-				Return(nil)
+		t.Run("should delete a note successfully", func(t *testing.T) {
+			mockRepo.EXPECT().DeleteNote(gomock.Any(), id).Return(nil)
 
 			err := service.DeleteNote(ctx, id)
 			assert.NoError(t, err)
 		})
 
-		t.Run("should return ErrInternal if repository returns error", func(t *testing.T) {
-			t.Parallel()
-
-			id := uuid.New()
-
-			mockRepo.EXPECT().
-				DeleteNote(gomock.Any(), id).
-				Return(assert.AnError)
+		t.Run("should return ErrInternal for repository errors", func(t *testing.T) {
+			mockRepo.EXPECT().DeleteNote(gomock.Any(), id).Return(assert.AnError)
 
 			err := service.DeleteNote(ctx, id)
 			assert.Error(t, err)
@@ -199,29 +177,21 @@ func TestService(t *testing.T) {
 	})
 
 	t.Run("FetchNotes", func(t *testing.T) {
-		t.Run("should fetch all notes", func(t *testing.T) {
-			t.Parallel()
+		expectedNotes := []repository.Note{
+			{ID: uuid.New(), Title: gofakeit.Sentence(3), Description: gofakeit.Sentence(10)},
+			{ID: uuid.New(), Title: gofakeit.Sentence(3), Description: gofakeit.Sentence(10)},
+		}
 
-			expectedNotes := []repository.Note{
-				{ID: uuid.New(), Title: gofakeit.Sentence(3), Description: gofakeit.Sentence(10)},
-				{ID: uuid.New(), Title: gofakeit.Sentence(3), Description: gofakeit.Sentence(10)},
-			}
-
-			mockRepo.EXPECT().
-				FetchNotes(gomock.Any()).
-				Return(expectedNotes, nil)
+		t.Run("should fetch all notes successfully", func(t *testing.T) {
+			mockRepo.EXPECT().FetchNotes(gomock.Any()).Return(expectedNotes, nil)
 
 			notes, err := service.FetchNotes(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, expectedNotes, notes)
 		})
 
-		t.Run("should return ErrInternal if repository returns error", func(t *testing.T) {
-			t.Parallel()
-
-			mockRepo.EXPECT().
-				FetchNotes(gomock.Any()).
-				Return(nil, assert.AnError)
+		t.Run("should return ErrInternal for repository errors", func(t *testing.T) {
+			mockRepo.EXPECT().FetchNotes(gomock.Any()).Return(nil, assert.AnError)
 
 			notes, err := service.FetchNotes(ctx)
 			assert.Error(t, err)
