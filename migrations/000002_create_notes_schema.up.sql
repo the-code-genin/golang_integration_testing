@@ -8,4 +8,4 @@ CREATE TABLE IF NOT EXISTS core.notes (
     CONSTRAINT notes_pkey PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS notes_unque_title_index ON core.notes (title);
+CREATE UNIQUE INDEX IF NOT EXISTS notes_unique_title_index ON core.notes (title);
