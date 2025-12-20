@@ -9,3 +9,7 @@ migrate-up:
 .PHONY: migrate-down
 migrate-down:
 	@migrate -path ./migrations -database "postgres://postgres:password@localhost:5432/postgres?sslmode=disable" down
+
+.PHONY: generate-mocks
+generate-mocks:
+	@go generate ./...
