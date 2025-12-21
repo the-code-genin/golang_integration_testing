@@ -61,8 +61,11 @@ func TestServer(t *testing.T) {
 				ContainsKey("created_at").
 				ContainsKey("updated_at")
 
-			noteID, _ := uuid.Parse(resp.Value("id").String().Raw())
-			note, _ := repo.FetchNoteByID(ctx, noteID)
+			noteID, err := uuid.Parse(resp.Value("id").String().Raw())
+			assert.NoError(t, err)
+
+			note, err := repo.FetchNoteByID(ctx, noteID)
+			assert.NoError(t, err)
 
 			assert.Equal(t, title, note.Title)
 			assert.Equal(t, description, note.Description)
@@ -98,7 +101,8 @@ func TestServer(t *testing.T) {
 			t.Parallel()
 
 			title := gofakeit.Sentence(3)
-			_, _ = repo.CreateNote(ctx, repository.CreateNoteDTO{Title: title, Description: gofakeit.Sentence(10)})
+			_, err = repo.CreateNote(ctx, repository.CreateNoteDTO{Title: title, Description: gofakeit.Sentence(10)})
+			assert.NoError(t, err)
 
 			httpClient.POST("/v1/notes").
 				WithHeader("Content-Type", "application/json").
