@@ -13,3 +13,7 @@ migrate-down:
 .PHONY: generate-mocks
 generate-mocks:
 	@go generate ./...
+
+.PHONY: test
+test:
+	@go test ./...
