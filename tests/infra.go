@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
@@ -72,7 +73,10 @@ func SetupPostgresDB(
 	)
 	connPool, err = pgxpool.New(ctx, connStr)
 	if err != nil {
-		container.Terminate(ctx)
+		if tErr := container.Terminate(ctx); tErr != nil {
+			log.Printf("error occurred while terminating PostgreSQL container: %s", tErr.Error())
+		}
+
 		return nil, nil, nil, fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 
@@ -84,6 +88,7 @@ func SetupPostgresDB(
 		}
 
 		connPool.Close()
+
 		if err := container.Terminate(ctx); err != nil {
 			return err
 		}

@@ -31,6 +31,7 @@ func TestRepository(t *testing.T) {
 		t.Run("should create a note given a title and description", func(t *testing.T) {
 			t.Parallel()
 
+			// Create a note
 			dto := repository.CreateNoteDTO{
 				Title:       gofakeit.Sentence(3),
 				Description: gofakeit.Sentence(10),
@@ -61,15 +62,15 @@ func TestRepository(t *testing.T) {
 		t.Run("should fail if an existing note's title is specified", func(t *testing.T) {
 			t.Parallel()
 
+			// Create a note
 			title := gofakeit.Sentence(3)
-
 			_, err := repo.CreateNote(ctx, repository.CreateNoteDTO{
 				Title:       title,
 				Description: gofakeit.Sentence(10),
 			})
 			assert.NoError(t, err)
 
-			// Attempt to create duplicate
+			// Attempt to create duplicate with the same title
 			_, err = repo.CreateNote(ctx, repository.CreateNoteDTO{
 				Title:       title,
 				Description: gofakeit.Sentence(10),
@@ -90,6 +91,7 @@ func TestRepository(t *testing.T) {
 		t.Run("should fetch an existing note given its ID", func(t *testing.T) {
 			t.Parallel()
 
+			// Create a note
 			dto := repository.CreateNoteDTO{
 				Title:       gofakeit.Sentence(3),
 				Description: gofakeit.Sentence(10),
@@ -98,6 +100,7 @@ func TestRepository(t *testing.T) {
 			note, err := repo.CreateNote(ctx, dto)
 			assert.NoError(t, err)
 
+			// Ensure the note can be fetched
 			fetchedNote, err := repo.FetchNoteByID(ctx, note.ID)
 			assert.NoError(t, err)
 			assert.Equal(t, note.ID, fetchedNote.ID)
@@ -232,6 +235,7 @@ func TestRepository(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
+			// Ensure exactly 3 notes are fetched from the DB
 			notes, err := repo.FetchNotes(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, 3, len(notes))
