@@ -88,6 +88,8 @@ func TestService(t *testing.T) {
 	})
 
 	t.Run("FetchNoteByID", func(t *testing.T) {
+		t.Parallel()
+
 		id := uuid.New()
 
 		t.Run("should fetch a note given a valid ID", func(t *testing.T) {
@@ -124,6 +126,8 @@ func TestService(t *testing.T) {
 	})
 
 	t.Run("UpdateNote", func(t *testing.T) {
+		t.Parallel()
+
 		id := uuid.New()
 		title := gofakeit.Sentence(3)
 		desc := gofakeit.Sentence(10)
@@ -158,6 +162,8 @@ func TestService(t *testing.T) {
 	})
 
 	t.Run("DeleteNote", func(t *testing.T) {
+		t.Parallel()
+
 		id := uuid.New()
 
 		t.Run("should delete a note successfully", func(t *testing.T) {
@@ -183,6 +189,8 @@ func TestService(t *testing.T) {
 		}
 
 		t.Run("should fetch all notes successfully", func(t *testing.T) {
+			t.Parallel()
+
 			mockRepo.EXPECT().FetchNotes(gomock.Any()).Return(expectedNotes, nil)
 
 			notes, err := service.FetchNotes(ctx)
@@ -191,6 +199,8 @@ func TestService(t *testing.T) {
 		})
 
 		t.Run("should return ErrInternal for repository errors", func(t *testing.T) {
+			t.Parallel()
+
 			mockRepo.EXPECT().FetchNotes(gomock.Any()).Return(nil, assert.AnError)
 
 			notes, err := service.FetchNotes(ctx)
