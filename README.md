@@ -1,6 +1,6 @@
 # Golang Integration Testing Example
 
-This repository accompanies the article [Integration Testing in Go with Testcontainers](https://blog.mohammedadekunle.com.ng/integration-testing-in-golang-with-docker-and-testcontainers) and demonstrates how to build a simple CRUD application in Golang with robust testing practices. The project covers unit testing and integration testing against real infrastructure using [Docker](https://docker.com) and [Testcontainers](https://testcontainers.com/).
+This repository accompanies the article [Integration Testing in Go with Testcontainers](https://the-code-genin.medium.com/integration-testing-in-golang-with-docker-and-testcontainers-a-practical-guide-ad654508284a) and demonstrates how to build a simple CRUD application in Golang with robust testing practices. The project covers unit, integration and system testing against real infrastructure using [Docker](https://docker.com) and [Testcontainers](https://testcontainers.com/).
 
 ## Features
 
