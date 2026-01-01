@@ -1,6 +1,8 @@
 # Golang Integration Testing Example
 
-This repository accompanies the article [Integration Testing in Golang with Docker and Testcontainers: A Practical Guide](https://the-code-genin.medium.com/integration-testing-in-golang-with-docker-and-testcontainers-a-practical-guide-ad654508284a) and demonstrates how to build a simple CRUD application in Golang with robust testing practices. The project covers unit, integration and system testing against real infrastructure using [Docker](https://docker.com) and [Testcontainers](https://testcontainers.com/).
+This repository accompanies the article series [A Comprehensive Guide to Software Testing in Golang](https://the-code-genin.medium.com/list/a-comprehensive-guide-to-software-testing-in-golang-b1cd48050813) and demonstrates how to build a simple CRUD application in Golang with robust testing practices.
+
+The project covers [unit](https://the-code-genin.medium.com/unit-testing-in-golang-writing-fast-reliable-tests-ee5f14ce5b06), [integration](https://the-code-genin.medium.com/integration-testing-in-golang-with-docker-and-testcontainers-a-practical-guide-ad654508284a) and system testing against real infrastructure using [Docker](https://docker.com) and [Testcontainers](https://testcontainers.com/).
 
 ## Features
 
@@ -76,8 +78,8 @@ The server should start on port `8080` (or the port specified via `env` variable
 
 ## API Endpoints
 
-- `POST /notes` - Create a note with a title and description.
-- `GET /notes/:id` - Fetch a single note by ID.
-- `GET /notes` - Fetch all notes.
-- `PUT /notes/:id` - Update a note by ID.
-- `DELETE /notes/:id` - Delete a note by ID.
+- `POST /v1/notes` - Create a note with title and description.
+- `GET /v1/notes/:id` - Fetch a single note by ID.
+- `GET /v1/notes` - Fetch all notes.
+- `PUT /v1/notes/:id` - Update a note by ID.
+- `DELETE /v1/notes/:id` - Delete a note by ID.
