@@ -2,7 +2,7 @@
 
 This repository accompanies the article series [A Comprehensive Guide to Software Testing in Golang](https://the-code-genin.medium.com/list/a-comprehensive-guide-to-software-testing-in-golang-b1cd48050813) and demonstrates how to build a simple CRUD application in Golang with robust testing practices.
 
-The project covers [unit](https://the-code-genin.medium.com/unit-testing-in-golang-writing-fast-reliable-tests-ee5f14ce5b06), [integration](https://the-code-genin.medium.com/integration-testing-in-golang-with-docker-and-testcontainers-a-practical-guide-ad654508284a) and system testing against real infrastructure using [Docker](https://docker.com) and [Testcontainers](https://testcontainers.com/).
+The project covers [unit](https://the-code-genin.medium.com/unit-testing-in-golang-writing-fast-reliable-tests-ee5f14ce5b06), [integration](https://the-code-genin.medium.com/integration-testing-in-golang-with-docker-and-testcontainers-a-practical-guide-ad654508284a) and [system](https://the-code-genin.medium.com/system-testing-in-golang-end-to-end-testing-in-practice-65e16a6eee85) testing against real infrastructure using [Docker](https://docker.com) and [Testcontainers](https://testcontainers.com/).
 
 ## Features
 
